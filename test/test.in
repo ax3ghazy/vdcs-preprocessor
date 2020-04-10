@@ -1,3 +1,3 @@
 % abc = bxy
-% abc = (myEqual aa blo cs)
+% abc = myEqual aa blo
 % print "WOW"

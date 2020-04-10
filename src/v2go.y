@@ -1,11 +1,10 @@
 %{
 #include <stdio.h>
-#include <stdlib.h>
+#define YYSTYPE char*
+extern char* yytext;
 %}
 
 %start list
-
-/* %union {char* str;} */
 
 %token START INDENT QUOTE IDENTIFIER
 %right EQUAL PRINT IF
@@ -22,8 +21,8 @@ list: //empty
       ;
 
 statement:
-	   IDENTIFIER EQUAL expression
-          |IDENTIFIER EQUAL START_PARENTHESIS other END_PARENTHESIS
+	   identifier EQUAL expression
+          |identifier EQUAL START_PARENTHESIS other END_PARENTHESIS
 	  |IF expression
 	  |PRINT expression
 	  ;
@@ -35,7 +34,7 @@ expression:
 		;
 
 identifier:
-	  IDENTIFIER {printf("%s", $1);}
+	  IDENTIFIER {$$ = strdup(yytext);}
 	;
 
 indentation:
