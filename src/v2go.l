@@ -1,7 +1,7 @@
 %{
 #include <stdio.h>
 #include "y.tab.h"
-#define DEBUG
+/* #define DEBUG */
 %}
 
 %%

@@ -128,22 +128,30 @@ void add_to_assigned_vars(const char * var) {
   assigned_vars_i++;
 }
 
-int main() {
+int main(int argc, char *argv[]) {
 // parse the input
- yyparse();
+ if (argc < 2) {
+  printf("Usage: v2go <output_file>");
+  exit(EXIT_FAILURE);
+ }
+
+ if (!yyparse()) {
+  printf("INFO: Parsed successfully!\n");
+ }
+
  int program_size = idx;
  int channel_idx = 0;
  char * line = NULL;
  size_t len = 0;
  ssize_t read;
  // args
- FILE *stub_vdcs_file = fopen("stub.vdcs.go","r");
- FILE *output_vdcs_file = fopen("output.vdcs.go","a");
+ FILE *stub_vdcs_file = fopen("stub.vdcs.go", "r");
+ FILE *output_vdcs_file = fopen(argv[1], "w");
 
 
   if(stub_vdcs_file == NULL || output_vdcs_file == NULL) {
       printf("Error opening the files.\n");
-      exit(1);
+      exit(EXIT_FAILURE);
   }
 
 
@@ -275,6 +283,7 @@ int main() {
    }\n \
 }");
 
+ printf("INFO: Output written to %s\n", argv[1]);
 
  fclose(stub_vdcs_file);
  fclose(output_vdcs_file);
