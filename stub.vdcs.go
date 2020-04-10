@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strconv"
 	"bytes"
-	"vdcs"
+	"./vdcs"
 	"log"
 	"os"
 	"time"
