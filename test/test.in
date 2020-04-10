@@ -1,3 +1,9 @@
-% abc = bxy
-% abc = myEqual aa blo
-% print "WOW"
+% i = ("a")
+% j = ("b")
+% k = ("a")
+% result = myEqual_string_1_string_1 i j
+% print ("Result_i==j?:")
+% print result
+% result = myEqual_string_1_string_1 i k
+% print ("Result_i==k?:")
+% print result

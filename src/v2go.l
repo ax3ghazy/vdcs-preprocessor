@@ -1,12 +1,13 @@
 %{
 #include <stdio.h>
 #include "y.tab.h"
-/* #define DEBUG */
+#define DEBUG
 %}
 
 %%
 
 ^\%  {
+		yylval.str = strdup(yytext);
 		#ifdef DEBUG
 		printf("start ");
 		#endif
@@ -14,6 +15,7 @@
 		}
 
 if {
+		yylval.str = strdup(yytext);
 		#ifdef DEBUG
 		printf("if ");
 		#endif
@@ -21,6 +23,7 @@ if {
 		}
 
 print {
+		yylval.str = strdup(yytext);
 		#ifdef DEBUG
 		printf("print ");
 		#endif
@@ -28,6 +31,7 @@ print {
 		}
 
 ["] {
+		yylval.str = strdup(yytext);
 		#ifdef DEBUG
 		printf("quote ");
 		#endif
@@ -35,6 +39,7 @@ print {
 		}
 
 = {
+		yylval.str = strdup(yytext);
 		#ifdef DEBUG
 		printf("equal ");
 		#endif
@@ -42,6 +47,7 @@ print {
 		}
 
 [(] {
+		yylval.str = strdup(yytext);
 		#ifdef DEBUG
 		printf("( ");
 		#endif
@@ -49,13 +55,15 @@ print {
 		}
 
 [)] {
+		yylval.str = strdup(yytext);
 		#ifdef DEBUG
 		printf(") ");
 		#endif
 		return END_PARENTHESIS;
 		}
 
-[a-zA-z]+[a-zA-Z0-9]* {
+[a-zA-z_]+[a-zA-Z0-9_]* {
+		yylval.str = strdup(yytext);
 		#ifdef DEBUG
 			printf("identifier ");
 		#endif
@@ -63,6 +71,7 @@ print {
 		}
 
 [\n] {
+		yylval.str = strdup(yytext);
 		#ifdef DEBUG
 		printf("eol\n");
 		#endif
@@ -70,15 +79,24 @@ print {
 		}
 
 [\t] {
+		yylval.str = strdup(yytext);
 		#ifdef DEBUG
 		printf("indentation ");
 		#endif
 		return INDENT;
 		}
 
-[ ]			;
+[ ] {
+		yylval.str = strdup(yytext);
+		#ifdef DEBUG
+		printf("space ");
+		#endif
+		/* return SPACE; */
+		}
+
 
 . {
+		yylval.str = strdup(yytext);
 		#ifdef DEBUG
 		printf("other ");
 		#endif

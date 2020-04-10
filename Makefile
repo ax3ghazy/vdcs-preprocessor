@@ -1,6 +1,6 @@
 YFLAGS	= -d
 SRCDIR = ./src
-YAC = yacc
+YAC = bison -y
 LEX = flex
 PROGRAM = v2go
 OBJS = y.tab.o lex.yy.o
@@ -12,7 +12,7 @@ all: $(PROGRAM)
 $(OBJS): $(SRCS)
 	$(CC) -c $*.c -o $@ -O
 
-y.tab.c: $(SRCDIR)/v2go.y
+y.tab.c: $(SRCDIR)/v2go.y lex.yy.c
 	$(YACC) $(YFLAGS) $(SRCDIR)/v2go.y
 
 lex.yy.c: $(SRCDIR)/v2go.l
@@ -22,4 +22,7 @@ v2go: $(OBJS)
 	$(CC) $(OBJS) -o $@ -lfl -lm
 
 clean:
-	rm ‑f $(OBJS) v2go y.tab.* lex.yy.*
+	rm ‑f $(OBJS) v2go y.tab.* lex.yy.* output.vdcs.go
+
+test: $(PROGRAM)
+	./v2go < test/test.in
