@@ -1,6 +1,6 @@
-% i = ("a")
-% j = ("b")
-% k = ("a")
+% i = ("abcd")
+% j = ("bcde")
+% k = ("abcd")
 % result = myEqual_string_1_string_1 i j
 % print ("Result_i==j?:")
 % print result
