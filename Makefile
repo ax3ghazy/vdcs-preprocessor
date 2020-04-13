@@ -25,4 +25,4 @@ clean:
 	rm ‑f $(OBJS) v2go y.tab.* lex.yy.* output.vdcs.go
 
 test: $(PROGRAM)
-	./v2go ../client.go < test/test.in
+	./v2go ./client.go < test/test.in

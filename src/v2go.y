@@ -145,7 +145,7 @@ int main(int argc, char *argv[]) {
  size_t len = 0;
  ssize_t read;
  // args
- FILE *stub_vdcs_file = fopen("stub.vdcs.go", "r");
+ FILE *stub_vdcs_file = fopen("./src/stub.vdcs.go", "r");
  FILE *output_vdcs_file = fopen(argv[1], "w");
 
 
