@@ -105,9 +105,10 @@ other:
 
 int add_com(FILE* fptr, int i, const char * circ) {
 
+  // number of servers
   fprintf(fptr, \
   "\t_%sCh%d := make(chan vdcs.ChannelContainer)\n \
-  \tgo vdcs.Comm(\"%s\", %d, 3, 1, _%sCh%d)\n" \
+  \tgo vdcs.Comm(\"%s\", %d, 6, 1, _%sCh%d)\n" \
 		, circ, i, circ, i, circ, i);
 }
 
