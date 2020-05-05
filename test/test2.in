@@ -1,0 +1,12 @@
+% i = ("a")
+% j = ("b")
+% k = ("c")
+% l = ("b")
+% result = myEqual_string_1_string_1 i j
+% print ("Result_i==j?:")
+% print result
+% result = myEqual_string_1_string_1 i k
+% print ("Result_i==k?:")
+% result = myEqual_string_1_string_1 j l
+% print ("Result_j==l?:")
+% print result

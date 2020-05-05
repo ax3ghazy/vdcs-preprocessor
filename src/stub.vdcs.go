@@ -1,22 +1,26 @@
 package main
 
 import (
-	"fmt"
-	"strconv"
 	"bytes"
-	"./vdcs"
-	"log"
+	"fmt"
 	"os"
+	"strconv"
 	"time"
-)
 
+	"./vdcs"
+)
 
 func main() {
 	vdcs.ReadyMutex.Lock()
 	vdcs.ReadyFlag = false
 	vdcs.ReadyMutex.Unlock()
-	port, err := strconv.ParseInt(os.Args[1], 10, 32)
-	if err != nil {log.Fatal("Error reading commandline arguments", err)}
-	vdcs.SetDirectoryInfo([]byte("127.0.0.1"), int(port))
-	vdcs.ClientRegister()
+
+	username := os.Args[1]
+	cleosKey := os.Args[2]
+	actionAccount := os.Args[3]
+	passwordWallet := os.Args[4]
+
+	vdcs.SetDecentralizedDirectoryInfo("http://127.0.0.1:8888", actionAccount, passwordWallet)
+	vdcs.ClientRegisterDecentralized(username, cleosKey)
+
 	go vdcs.ClientHTTP()

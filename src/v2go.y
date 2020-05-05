@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
-#define BUFFER_SIZE 50
+#define BUFFER_SIZE 2048
 #define MAX_PROGRAM_SIZE 50
 extern char* yytext;
 enum statement_t {ASSIGNMENT_ST, PRINT_ST};

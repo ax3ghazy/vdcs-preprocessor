@@ -1,0 +1,5 @@
+% i = ("aaaaaaaaaaaaaaaaaaaa")
+% j = ("bbbbbbbbbbbbbbbbbbbb")
+% result = myEqual_string_1_string_1 i j
+% print ("Result_i==j?:")
+% print result
