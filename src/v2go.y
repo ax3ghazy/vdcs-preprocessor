@@ -3,10 +3,14 @@
 #include <string.h>
 #include <stdio.h>
 #define BUFFER_SIZE 2048
-#define MAX_PROGRAM_SIZE 50
+#define MAX_PROGRAM_SIZE 1024
 extern char* yytext;
-enum statement_t {ASSIGNMENT_ST, PRINT_ST};
-enum expression_t {VAR_T, VDCS_T, GO_VALID_T};
+
+FILE *output_vdcs_file;
+int number_servers = 6;
+
+enum statement_t {ASSIGNMENT_ST, PRINT_ST, IF_ST, END_BRACE_ST, ELSE_ST, REPEAT_ST};
+enum expression_t {VAR_T, VDCS_T, NUMBER_T, GO_VALID_T};
 struct program_statment_t {
   enum statement_t statement_type;
   enum expression_t expression_type;
@@ -20,32 +24,39 @@ struct program_statment_t {
 enum expression_t expr_type;
 struct program_statment_t program[MAX_PROGRAM_SIZE];
 int idx = 0;
+int channel_idx = 0;
 char func_name[BUFFER_SIZE], operand1[BUFFER_SIZE], operand2[BUFFER_SIZE], expr[BUFFER_SIZE];
 
 int assigned_vars_i = 0;
 char assigned_vars[MAX_PROGRAM_SIZE][BUFFER_SIZE];
+
+
+// brace stack
+int braces_open = 0;
+int repeat_number = 0;
+int repeat_level = 0;
+int repeat_i = -1;
 %}
 
 %start list
 
-%token <str> START INDENT QUOTE IDENTIFIER
-%right <str> EQUAL PRINT IF
-%right <str> START_PARENTHESIS
-%left <str> END_PARENTHESIS
+%token <str> START QUOTE IDENTIFIER DIGIT
+%right <str> EQUAL PRINT IF ELSE REPEAT
+%right <str> START_PARENTHESIS START_BRACE
+%left <str> END_PARENTHESIS END_BRACE
 %token <str> OTHER SPACE EOL
 
 %union {
   char *str;
 }
 
-%type <str> identifier expression statement other
+%type <str> identifier expression statement other number
 
 %%
 
 list: //empty
       | list EOL list
       | START statement
-      | START indentation statement
       ;
 
 statement:
@@ -59,7 +70,43 @@ statement:
 	    strcpy(program[idx].VDCS_expr, expr);
 	    idx++;
 	  }
-	  |IF expression
+	  |REPEAT number START_BRACE {
+	    braces_open++;
+	    program[idx].statement_type = REPEAT_ST;
+	    program[idx].expression_type = NUMBER_T;
+	    printf("number=%s\n", $2);
+	    strcpy(program[idx].VDCS_expr, $2);
+	    idx++;
+	  }
+	  |IF expression START_BRACE {
+	    braces_open++;
+	    program[idx].statement_type = IF_ST;
+	    program[idx].expression_type = expr_type;
+	    strcpy(program[idx].VDCS_expr, expr);
+	    idx++;
+	  }
+	  | END_BRACE {
+	    if (braces_open > 0) {
+	      braces_open--;
+	      /* printf("braces_openUP: %d", braces_open); */
+	      program[idx].statement_type = END_BRACE_ST;
+	      idx++;
+	    } else {
+	      printf("Error: unmatched braces");
+	      exit(EXIT_FAILURE);
+	    }
+	  }
+	  |END_BRACE ELSE START_BRACE {
+	    if (braces_open > 0) {
+	      /* printf("else_expr"); */
+	      /* printf("braces_openDOWN%d", braces_open); */
+	      program[idx].statement_type = ELSE_ST;
+	      idx++;
+	    } else {
+	      printf("Error: unmatched braces");
+	      exit(EXIT_FAILURE);
+	    }
+	  }
 	  |PRINT expression {
 	    program[idx].statement_type = PRINT_ST;
 	    program[idx].expression_type = expr_type;
@@ -90,14 +137,14 @@ identifier:
 	  IDENTIFIER {$$ = $1;}
 	;
 
-indentation:
-	     INDENT indentation
-	     |INDENT
-	     ;
+number:
+     	number number {strcat($$, $2);}
+	| DIGIT
+	;
 
 other:
      	other other {strcat($$, $2);}
-	| OTHER | IDENTIFIER | EQUAL | IF | PRINT | START | INDENT | QUOTE
+	| OTHER | IDENTIFIER | EQUAL | IF | ELSE | REPEAT | PRINT | START | QUOTE | DIGIT
 	;
 
 %%
@@ -107,8 +154,8 @@ int add_com(FILE* fptr, int i, const char * circ) {
 
   fprintf(fptr, \
   "\t_%sCh%d := make(chan vdcs.ChannelContainer)\n \
-  \tgo vdcs.Comm(\"%s\", %d, 3, 1, _%sCh%d)\n" \
-		, circ, i, circ, i, circ, i);
+  \tgo vdcs.Comm(\"%s\", %d, %d, 1, _%sCh%d)\n" \
+		, circ, i, circ, i, number_servers, circ, i);
 }
 
 int is_assigned (const char * var) {
@@ -128,6 +175,98 @@ void add_to_assigned_vars(const char * var) {
   assigned_vars_i++;
 }
 
+void process_line(int i, int com_mode) {
+
+    switch (program[i].statement_type) {
+      case REPEAT_ST: // cannot be nested for now
+	/* printf("REPEAT:braces at level: %d", braces_open); */
+	braces_open++;
+	repeat_number = atoi(program[i].VDCS_expr);
+	repeat_level = braces_open;
+	repeat_i = i;
+	break;
+      case ASSIGNMENT_ST:
+	if (program[i].expression_type == VDCS_T) {
+	  if (com_mode) {
+	    add_com(output_vdcs_file, channel_idx, program[i].VDCS_func_name);
+	  } else {
+	    char assig_char = is_assigned(program[i].VDCS_assignee)? ' ' : ':';
+	    if (!repeat_level) {
+	      fprintf(output_vdcs_file, "\t%s %c= eval(%s, %s, %d, _%sCh%d)\n", \
+	    program[i].VDCS_assignee, assig_char, program[i].VDCS_operand1,  program[i].VDCS_operand2, \
+	    channel_idx, program[i].VDCS_func_name, channel_idx);
+	    add_to_assigned_vars(program[i].VDCS_assignee);
+	    }
+	  }
+	  channel_idx++;
+	} else if (!com_mode) {
+	  char assig_char = is_assigned(program[i].VDCS_assignee)? ' ' : ':';
+	  if (!repeat_level) {
+	    fprintf(output_vdcs_file, "\t%s %c= %s\n", \
+	    program[i].VDCS_assignee, assig_char, program[i].VDCS_expr);
+
+	    add_to_assigned_vars(program[i].VDCS_assignee);
+	  }
+	}
+	break;
+      case PRINT_ST:
+	if (program[i].expression_type == VDCS_T) {
+
+	  /* channel_idx++; */
+	} else if (!com_mode){
+	  if (!repeat_level)
+		fprintf(output_vdcs_file, "\tfmt.Println(%s)\n", program[i].VDCS_expr);
+	}
+	break;
+      case IF_ST:
+	/* printf("IF:braces at level: %d", braces_open); */
+	braces_open++;
+	if (program[i].expression_type == VDCS_T) {
+	  if (com_mode) {
+	    add_com(output_vdcs_file, channel_idx, program[i].VDCS_func_name);
+	  } else {
+	    if (!repeat_level)
+	      fprintf(output_vdcs_file, "\tif eval(%s, %s, %d, _%sCh%d) { \n", \
+	    program[i].VDCS_operand1,  program[i].VDCS_operand2, \
+	    channel_idx, program[i].VDCS_func_name, channel_idx);
+	  }
+	  channel_idx++;
+	} else if (!com_mode) {
+	  if (!repeat_level)
+	    fprintf(output_vdcs_file, "\tif %s {\n", program[i].VDCS_expr);
+	}
+	break;
+      case ELSE_ST:
+	  if (!com_mode) {
+	    if (!repeat_level) {
+	      fprintf(output_vdcs_file, "\t} else {\n");
+	    }
+	  }
+	break;
+      case END_BRACE_ST:
+	    braces_open--;
+	    /* printf("line:%d\n", i); */
+	    /* printf("END:braces at level: %d\n", braces_open); */
+	    if (repeat_level == braces_open+1) {
+	      repeat_level = 0;
+	      for (int k = 0; k < repeat_number; k++) {
+	        for (int j = repeat_i+1; j < i; j++) {
+	          process_line(j, com_mode);
+	        }
+	      }
+	      repeat_number = 0;
+	      repeat_i = -1;
+	    } else if (!com_mode) {
+		if (!repeat_level)
+		  fprintf(output_vdcs_file, "\t}\n");
+	    }
+
+	break;
+
+   }
+
+}
+
 int main(int argc, char *argv[]) {
 // parse the input
  if (argc < 2) {
@@ -139,14 +278,19 @@ int main(int argc, char *argv[]) {
   printf("INFO: Parsed successfully!\n");
  }
 
+ if (braces_open) {
+  printf("ERROR: Unmatched braces after parsing\n");
+  exit(EXIT_FAILURE);
+ }
+
  int program_size = idx;
- int channel_idx = 0;
+ channel_idx = 0;
  char * line = NULL;
  size_t len = 0;
  ssize_t read;
  // args
  FILE *stub_vdcs_file = fopen("./src/stub.vdcs.go", "r");
- FILE *output_vdcs_file = fopen(argv[1], "w");
+ output_vdcs_file = fopen(argv[1], "w");
 
 
   if(stub_vdcs_file == NULL || output_vdcs_file == NULL) {
@@ -160,47 +304,17 @@ int main(int argc, char *argv[]) {
     fprintf(output_vdcs_file, "%s", line);
   }
 
+  // comm insertion
   fprintf(output_vdcs_file, "\n\t//VDCS Communications:\n");
   for (int i = 0; i < program_size; i++) {
-   if (program[i].statement_type == ASSIGNMENT_ST) {
-       if (program[i].expression_type == VDCS_T) {
-         add_com(output_vdcs_file, channel_idx, program[i].VDCS_func_name);
-         channel_idx++;
-       }
-   }
+    process_line(i, 1); //com mode
   }
 
 ////////////////
   fprintf(output_vdcs_file, "\n\t//USER PROGRAM:\n");
   channel_idx = 0;
   for (int i = 0; i < program_size; i++) {
-    switch (program[i].statement_type) {
-      case ASSIGNMENT_ST:
-	if (program[i].expression_type == VDCS_T) {
-	  char assig_char = is_assigned(program[i].VDCS_assignee)? ' ' : ':';
-	  fprintf(output_vdcs_file, "\t%s %c= eval(%s, %s, %d, _%sCh%d)\n", \
-	  program[i].VDCS_assignee, assig_char, program[i].VDCS_operand1,  program[i].VDCS_operand2, \
-	  channel_idx, program[i].VDCS_func_name, channel_idx);
-	  channel_idx++;
-	} else {
-	  char assig_char = is_assigned(program[i].VDCS_assignee)? ' ' : ':';
-	  fprintf(output_vdcs_file, "\t%s %c= %s\n", \
-	  program[i].VDCS_assignee, assig_char, program[i].VDCS_expr);
-
-	}
-	add_to_assigned_vars(program[i].VDCS_assignee);
-	break;
-      case PRINT_ST:
-	if (program[i].expression_type == VDCS_T) {
-
-	  /* channel_idx++; */
-	} else {
-	  fprintf(output_vdcs_file, "\tfmt.Println(%s)\n", program[i].VDCS_expr);
-	}
-	break;
-      break;
-
-   }
+    process_line(i, 0);
   }
 
   fprintf(output_vdcs_file, "\n}\n"); // end main
@@ -292,10 +406,10 @@ int main(int argc, char *argv[]) {
  return 0;
 }
 
-void yyerror(s)
-char *s;
+void
+yyerror (char const *s)
 {
-  fprintf(stderr, "%s\n",s);
+  fprintf (stderr, "%s\n", s);
 }
 
 int yywrap()

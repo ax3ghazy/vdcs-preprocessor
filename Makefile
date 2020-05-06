@@ -10,7 +10,7 @@ CC = gcc
 all: $(PROGRAM)
 
 $(OBJS): $(SRCS)
-	$(CC) -c $*.c -o $@ -O
+	$(CC) -g -c $*.c -o $@ -O
 
 y.tab.c: $(SRCDIR)/v2go.y lex.yy.c
 	$(YACC) $(YFLAGS) $(SRCDIR)/v2go.y
@@ -19,10 +19,11 @@ lex.yy.c: $(SRCDIR)/v2go.l
 	$(LEX) $(SRCDIR)/v2go.l
 
 v2go: $(OBJS)
-	$(CC) $(OBJS) -o $@ -lfl -lm
+	$(CC) -g $(OBJS) -o $@ -lfl -lm
 
 clean:
 	rm ‑f $(OBJS) v2go y.tab.* lex.yy.* output.vdcs.go
 
 test: $(PROGRAM)
-	./v2go ./client.go < test/test.in
+	./v2go ./client.go < test/test_repeat.in
+	gofmt -w ./client.go

@@ -1,0 +1,11 @@
+% i = ("abcdefghij")
+% j = ("aaaaaaaaaa")
+% k = ("abcdefghij")
+% result1 = myEqual_string_1_string_1 i j
+% result2 = myEqual_string_1_string_1 i k
+% if (result1 != true) {
+% 	print ("i,j,notEQUAL")
+% 	if (result2) {
+% 		print ("i,k,EQUAL")
+% 	}
+% }

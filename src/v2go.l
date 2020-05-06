@@ -1,7 +1,7 @@
 %{
 #include <stdio.h>
 #include "y.tab.h"
-/* #define DEBUG */
+#define DEBUG
 %}
 
 %%
@@ -20,6 +20,22 @@ if {
 		printf("if ");
 		#endif
 		return IF;
+		}
+
+else {
+		yylval.str = strdup(yytext);
+		#ifdef DEBUG
+		printf("else ");
+		#endif
+		return ELSE;
+		}
+
+repeat {
+		yylval.str = strdup(yytext);
+		#ifdef DEBUG
+		printf("repeat ");
+		#endif
+		return REPEAT;
 		}
 
 print {
@@ -62,6 +78,30 @@ print {
 		return END_PARENTHESIS;
 		}
 
+[{] {
+		yylval.str = strdup(yytext);
+		#ifdef DEBUG
+		printf("{ ");
+		#endif
+		return START_BRACE;
+		}
+
+[}] {
+		yylval.str = strdup(yytext);
+		#ifdef DEBUG
+		printf("} ");
+		#endif
+		return END_BRACE;
+		}
+
+[0-9]+ {
+		yylval.str = strdup(yytext);
+		#ifdef DEBUG
+		printf("digit ");
+		#endif
+		return DIGIT;
+		}
+
 [a-zA-z_]+[a-zA-Z0-9_]* {
 		yylval.str = strdup(yytext);
 		#ifdef DEBUG
@@ -78,15 +118,8 @@ print {
 		return EOL;
 		}
 
-[\t] {
-		yylval.str = strdup(yytext);
-		#ifdef DEBUG
-		printf("indentation ");
-		#endif
-		return INDENT;
-		}
 
-[ ] {
+[ \t] {
 		yylval.str = strdup(yytext);
 		#ifdef DEBUG
 		printf("space ");
