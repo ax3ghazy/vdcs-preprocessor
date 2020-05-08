@@ -7,7 +7,7 @@
 extern char* yytext;
 
 FILE *output_vdcs_file;
-int number_servers = 6;
+int number_servers = 4;
 
 enum statement_t {ASSIGNMENT_ST, PRINT_ST, IF_ST, END_BRACE_ST, ELSE_ST, REPEAT_ST};
 enum expression_t {VAR_T, VDCS_T, NUMBER_T, GO_VALID_T};
@@ -187,18 +187,19 @@ void process_line(int i, int com_mode) {
 	break;
       case ASSIGNMENT_ST:
 	if (program[i].expression_type == VDCS_T) {
-	  if (com_mode) {
+	  if (com_mode && !repeat_level) {
 	    add_com(output_vdcs_file, channel_idx, program[i].VDCS_func_name);
+	    channel_idx++;
 	  } else {
 	    char assig_char = is_assigned(program[i].VDCS_assignee)? ' ' : ':';
 	    if (!repeat_level) {
 	      fprintf(output_vdcs_file, "\t%s %c= eval(%s, %s, %d, _%sCh%d)\n", \
-	    program[i].VDCS_assignee, assig_char, program[i].VDCS_operand1,  program[i].VDCS_operand2, \
-	    channel_idx, program[i].VDCS_func_name, channel_idx);
-	    add_to_assigned_vars(program[i].VDCS_assignee);
+	      program[i].VDCS_assignee, assig_char, program[i].VDCS_operand1,  program[i].VDCS_operand2, \
+	      channel_idx, program[i].VDCS_func_name, channel_idx);
+	      add_to_assigned_vars(program[i].VDCS_assignee);
+	      channel_idx++;
 	    }
 	  }
-	  channel_idx++;
 	} else if (!com_mode) {
 	  char assig_char = is_assigned(program[i].VDCS_assignee)? ' ' : ':';
 	  if (!repeat_level) {
@@ -230,6 +231,7 @@ void process_line(int i, int com_mode) {
 	    program[i].VDCS_operand1,  program[i].VDCS_operand2, \
 	    channel_idx, program[i].VDCS_func_name, channel_idx);
 	  }
+	  printf("\nnew channel if\n");
 	  channel_idx++;
 	} else if (!com_mode) {
 	  if (!repeat_level)
